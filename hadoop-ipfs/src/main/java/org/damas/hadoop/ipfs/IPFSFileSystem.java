@@ -1,16 +1,21 @@
 package org.damas.hadoop.ipfs;
 
 import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.FileNotFoundException;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FSExceptionMessages;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -23,10 +28,12 @@ import io.ipfs.api.IPFS;
 
 public class IPFSFileSystem extends FileSystem {
 
-    public static final String SERVICE_VERSION = "/api/v0";
+    public static final String API_VERSION = "/api/v0";
     public static final String SCHEME = "ipfs";
     public static final String IPFS_DEFAULT_HTTP_GATEWAY = "localhost";
     public static final int    IPFS_DEFAULT_HTTP_PORT = 5001;
+    public static final int    CONNECT_TIMEOUT_MILLIS = 10000; 
+    public static final int    READ_TIMEOUT_MILLIS = 60000;
 
     public enum FILE_TYPE {
         FILE, DIRECTORY, SYMLINK;
@@ -64,25 +71,78 @@ public class IPFSFileSystem extends FileSystem {
         return IPFS_DEFAULT_HTTP_PORT;
     }
 
-    private static class IPFSDataInputStream extends FilterInputStream implements Seekable, PositionedReadable {
+    private static class IPFSDataInputStream extends InputStream implements Seekable, PositionedReadable {
+        private IPFS ipfs;
+        private URI uri;
+        private Path path;
+        private int bufferSize;
 
-        protected IPFSDataInputStream(InputStream in, int bufferSize) {
-            super(new BufferedInputStream(in, bufferSize));
+        protected IPFSDataInputStream(IPFS ipfs, URI uri, Path path, int bufferSize) {
+            if (bufferSize <= 0) {
+                throw new IllegalArgumentException("Buffer size <= 0");
+            }
+
+            this.ipfs = ipfs;
+            this.uri = uri;
+            this.path = path;
+            this.bufferSize = bufferSize;
+        }
+
+        @Override
+        public int read() {
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public int read(long position, byte[] buffer, int offset, int length) throws IOException {
-            throw new UnsupportedOperationException("Unimplemented method 'read'");
+            validatePositionedReadArgs(position, buffer, offset, length);
+            // The url pattern for IPFSFilesystem is "ipfs://rootCID/<path>"
+            // The "cat" request sent through the ipfs http api is 
+            // "http://<host>:<port>/api/v0/cat?arg=<rootCID>/<path>&offset=<offset>&length=<length>"
+            String rootCID = uri.getAuthority();
+            String apiVersion = IPFSFileSystem.API_VERSION;
+            String arg = rootCID + this.path + "&offset=" + offset + "&length=" + length;
+            URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
+
+            HttpURLConnection conn = (HttpURLConnection)target.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(IPFSFileSystem.CONNECT_TIMEOUT_MILLIS);
+            conn.setReadTimeout(IPFSFileSystem.READ_TIMEOUT_MILLIS);
+            conn.setDoOutput(true);
+
+            try {
+                OutputStream out = conn.getOutputStream();
+                out.write(new byte[0]);
+                out.flush();
+                out.close();
+                InputStream in = new BufferedInputStream(conn.getInputStream(), bufferSize);
+
+                return in.read(buffer, 0, length);
+            } catch (ConnectException var9) {
+                throw new RuntimeException("Couldn't connect to IPFS daemon at " + 
+                                           String.valueOf(target) + "\n Is IPFS running?");
+            } catch (IOException e) {
+                throw IPFS.extractError(e, conn);
+            }
         }
 
         @Override
         public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
-            throw new UnsupportedOperationException("Unimplemented method 'readFully'");
+            validatePositionedReadArgs(position, buffer, offset, length);
+            int nread = 0;
+            while (nread < length) {
+                int nbytes = read(position + nread, buffer, offset + nread, length - nread);
+                if (nbytes < 0) {
+                    throw new EOFException(FSExceptionMessages.EOF_IN_READ_FULLY);
+                }
+                nread += nbytes;
+            }
         }
 
         @Override
         public void readFully(long position, byte[] buffer) throws IOException {
-            throw new UnsupportedOperationException("Unimplemented method 'readFully'");
+            readFully(position, buffer, 0, buffer.length);
         }
 
         @Override
@@ -99,15 +159,29 @@ public class IPFSFileSystem extends FileSystem {
         public boolean seekToNewSource(long targetPos) throws IOException {
             throw new UnsupportedOperationException();
         }
+
+        protected void validatePositionedReadArgs(long position,
+            byte[] buffer, int offset, int length) throws EOFException {
+            if (position < 0) {
+                throw new EOFException("position is negative");
+            }
+            if (buffer.length - offset < length) {
+                throw new IndexOutOfBoundsException(
+                    FSExceptionMessages.TOO_MANY_BYTES_FOR_DEST_BUFFER
+                    + ": request length=" + length
+                    + ", with offset ="+ offset
+                    + "; buffer capacity =" + (buffer.length - offset));
+            }
+        }
         
     }
 
     @Override
-    public void initialize(URI name, Configuration conf) throws IOException {
-        super.initialize(name, conf);
+    public void initialize(URI uri, Configuration conf) throws IOException {
+        super.initialize(uri, conf);
         try {
-            uri = new URI(name.getScheme() + "://" + name.getAuthority());
-            ipfs = new IPFS(IPFS_DEFAULT_HTTP_GATEWAY, IPFS_DEFAULT_HTTP_PORT);
+            this.uri = new URI(uri.getScheme() + "://" + uri.getAuthority());
+            this.ipfs = new IPFS(IPFS_DEFAULT_HTTP_GATEWAY, IPFS_DEFAULT_HTTP_PORT);
         } catch (URISyntaxException ex) {
             throw new IOException(ex);
         }
@@ -115,8 +189,7 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FSDataInputStream open(Path f, int bufferSize) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'open'");
+        return new FSDataInputStream(new IPFSDataInputStream(ipfs, uri, f, bufferSize));
     }
 
     @Override
