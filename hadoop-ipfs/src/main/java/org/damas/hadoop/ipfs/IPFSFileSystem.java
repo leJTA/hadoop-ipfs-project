@@ -1,6 +1,7 @@
 package org.damas.hadoop.ipfs;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -11,6 +12,10 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -25,6 +30,8 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
 
 import io.ipfs.api.IPFS;
+import io.ipfs.api.JSONParser;
+import io.ipfs.api.MerkleNode;
 
 public class IPFSFileSystem extends FileSystem {
 
@@ -54,6 +61,7 @@ public class IPFSFileSystem extends FileSystem {
     }
 
     private URI uri;
+    private String rootCID;
     private IPFS ipfs;
 
     @Override
@@ -101,7 +109,8 @@ public class IPFSFileSystem extends FileSystem {
             // "http://<host>:<port>/api/v0/cat?arg=<rootCID>/<path>&offset=<offset>&length=<length>"
             String rootCID = uri.getAuthority();
             String apiVersion = IPFSFileSystem.API_VERSION;
-            String arg = rootCID + this.path + "&offset=" + offset + "&length=" + length;
+            String path = URLEncoder.encode(this.path.toString(), "UTF-8");
+            String arg = rootCID + path + "&offset=" + offset + "&length=" + length;
             URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
 
             HttpURLConnection conn = (HttpURLConnection)target.openConnection();
@@ -217,10 +226,58 @@ public class IPFSFileSystem extends FileSystem {
         throw new UnsupportedOperationException("Unimplemented method 'delete'");
     }
 
+    private String retrieve(String query) throws IOException{
+        URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, API_VERSION + query);
+
+        HttpURLConnection conn = (HttpURLConnection)target.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setConnectTimeout(IPFSFileSystem.CONNECT_TIMEOUT_MILLIS);
+        conn.setReadTimeout(IPFSFileSystem.READ_TIMEOUT_MILLIS);
+        conn.setDoOutput(true);
+
+        try {
+            OutputStream out = conn.getOutputStream();
+            out.write(new byte[0]);
+            out.flush();
+            out.close();
+            InputStream in = conn.getInputStream();
+            ByteArrayOutputStream resp = new ByteArrayOutputStream();
+
+            byte[] buf = new byte[4096];
+            int r;
+            while ((r = in.read(buf)) >= 0) resp.write(buf, 0, r);
+            return resp.toString();
+        } catch (ConnectException var9) {
+            throw new RuntimeException("Couldn't connect to IPFS daemon at " + 
+                                        String.valueOf(target) + "\n Is IPFS running?");
+        } catch (IOException e) {
+            throw IPFS.extractError(e, conn);
+        }
+    }
+
     @Override
     public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'listStatus'");
+        String arg = rootCID + URLEncoder.encode(f.toString(), "UTF-8");
+        Map reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
+        List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
+        .flatMap(x -> ((List<Object>) ((Map) x).get("Links")).stream().map(MerkleNode::fromJSON))
+        .collect(Collectors.toList());
+        FileStatus[] statusList = new FileStatus[nodeList.size()];
+
+        for (int i = 0; i < nodeList.size(); ++i) {
+            MerkleNode node = nodeList.get(i);
+            statusList[i] = new FileStatus(
+                (long)node.size.get(),
+                node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
+                0,
+                0,
+                0,
+                Path.mergePaths(f, new Path(node.name.get()))
+            );
+        }
+
+        return statusList;
     }
 
     @Override
@@ -243,8 +300,16 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FileStatus getFileStatus(Path f) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getFileStatus'");
+        String arg = URLEncoder.encode("/ipfs/" + rootCID + f.toString(), "UTF-8");
+        MerkleNode node = new MerkleNode(retrieve("files/stat?arg=" + arg));
+        return new FileStatus(
+            (long)node.size.get(),
+            node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
+            0,
+            0,
+            0,
+            f
+        );
     }
 
 }
