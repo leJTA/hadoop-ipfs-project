@@ -204,8 +204,7 @@ public class IPFSFileSystem extends FileSystem {
     @Override
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize,
             short replication, long blockSize, Progressable progress) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'create'");
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -228,7 +227,6 @@ public class IPFSFileSystem extends FileSystem {
 
     private String retrieve(String query) throws IOException{
         URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, API_VERSION + query);
-
         HttpURLConnection conn = (HttpURLConnection)target.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
@@ -301,7 +299,12 @@ public class IPFSFileSystem extends FileSystem {
     @Override
     public FileStatus getFileStatus(Path f) throws IOException {
         String arg = URLEncoder.encode("/ipfs/" + rootCID + f.toString(), "UTF-8");
-        MerkleNode node = new MerkleNode(retrieve("files/stat?arg=" + arg));
+        // Change the JSON’s `"Type"` field from `"folder"` / `"file"` strings 
+        // to integers `1` / `2` so the MerkleNode can be initialized from it.
+        String resp = retrieve("files/stat?arg=" + arg)
+                .replace("\"file\"", "2")
+                .replace("\"directory\"", "1");
+        MerkleNode node = MerkleNode.fromJSON(JSONParser.parse(resp));
         return new FileStatus(
             (long)node.size.get(),
             node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
