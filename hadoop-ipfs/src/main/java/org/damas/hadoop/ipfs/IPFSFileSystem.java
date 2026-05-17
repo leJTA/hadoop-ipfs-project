@@ -35,7 +35,7 @@ import io.ipfs.api.MerkleNode;
 
 public class IPFSFileSystem extends FileSystem {
 
-    public static final String API_VERSION = "/api/v0";
+    public static final String API_VERSION = "/api/v0/";
     public static final String SCHEME = "ipfs";
     public static final String IPFS_DEFAULT_HTTP_GATEWAY = "localhost";
     public static final int    IPFS_DEFAULT_HTTP_PORT = 5001;
@@ -61,7 +61,6 @@ public class IPFSFileSystem extends FileSystem {
     }
 
     private URI uri;
-    private String rootCID;
     private IPFS ipfs;
 
     @Override
@@ -203,7 +202,6 @@ public class IPFSFileSystem extends FileSystem {
                     + "; buffer capacity =" + (buffer.length - offset));
             }
         }
-        
     }
 
     @Override
@@ -211,7 +209,7 @@ public class IPFSFileSystem extends FileSystem {
         super.initialize(uri, conf);
         try {
             this.uri = new URI(uri.getScheme() + "://" + uri.getAuthority());
-            this.ipfs = new IPFS(IPFS_DEFAULT_HTTP_GATEWAY, IPFS_DEFAULT_HTTP_PORT);
+            this.ipfs = new IPFS(uri.getHost(), uri.getPort());
         } catch (URISyntaxException ex) {
             throw new IOException(ex);
         }
@@ -219,7 +217,8 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FSDataInputStream open(Path f, int bufferSize) throws IOException {
-        return new FSDataInputStream(new IPFSDataInputStream(ipfs, uri, f, bufferSize));
+        Path path = new Path(f.toUri().getPath()); // get rid of the scheme and the authority
+        return new FSDataInputStream(new IPFSDataInputStream(ipfs, uri, path, bufferSize));
     }
 
     @Override
@@ -277,7 +276,8 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {
-        String arg = rootCID + URLEncoder.encode(f.toString(), "UTF-8");
+        String filePath = f.toUri().getPath(); // get rid of the scheme and the authority
+        String arg = URLEncoder.encode(filePath, "UTF-8");
         Map reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
         List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
         .flatMap(x -> ((List<Object>) ((Map) x).get("Links")).stream().map(MerkleNode::fromJSON))
@@ -292,7 +292,7 @@ public class IPFSFileSystem extends FileSystem {
                 0,
                 0,
                 0,
-                Path.mergePaths(f, new Path(node.name.get()))
+                new Path(filePath + "/" + node.name.get())
             );
         }
 
@@ -307,8 +307,7 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public Path getWorkingDirectory() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getWorkingDirectory'");
+        return new Path("/");
     }
 
     @Override
@@ -319,7 +318,8 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FileStatus getFileStatus(Path f) throws IOException {
-        String arg = URLEncoder.encode("/ipfs/" + rootCID + f.toString(), "UTF-8");
+        String filePath = f.toUri().getPath();
+        String arg = URLEncoder.encode("/ipfs" + filePath, "UTF-8");
         // Change the JSON’s `"Type"` field from `"folder"` / `"file"` strings 
         // to integers `1` / `2` so the MerkleNode can be initialized from it.
         String resp = retrieve("files/stat?arg=" + arg)
@@ -332,8 +332,7 @@ public class IPFSFileSystem extends FileSystem {
             0,
             0,
             0,
-            f
+            new Path(filePath)
         );
     }
-
 }
