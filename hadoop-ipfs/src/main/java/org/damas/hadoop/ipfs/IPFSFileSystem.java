@@ -84,6 +84,7 @@ public class IPFSFileSystem extends FileSystem {
         private URI uri;
         private Path path;
         private int bufferSize;
+        private long position;
 
         protected IPFSDataInputStream(IPFS ipfs, URI uri, Path path, int bufferSize) {
             if (bufferSize <= 0) {
@@ -94,6 +95,7 @@ public class IPFSFileSystem extends FileSystem {
             this.uri = uri;
             this.path = path;
             this.bufferSize = bufferSize;
+            this.position = 0;
         }
 
         @Override
@@ -102,15 +104,14 @@ public class IPFSFileSystem extends FileSystem {
         }
 
         @Override
-        public int read(long position, byte[] buffer, int offset, int length) throws IOException {
-            validatePositionedReadArgs(position, buffer, offset, length);
+        public int read(byte[] buffer, int offset, int length) throws IOException {
             // The url pattern for IPFSFilesystem is "ipfs://rootCID/<path>"
             // The "cat" request sent through the ipfs http api is 
             // "http://<host>:<port>/api/v0/cat?arg=<rootCID>/<path>&offset=<offset>&length=<length>"
             String rootCID = uri.getAuthority();
             String apiVersion = IPFSFileSystem.API_VERSION;
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
-            String arg = rootCID + path + "&offset=" + offset + "&length=" + length;
+            String arg = rootCID + path + "&offset=" + (position + offset) + "&length=" + length;
             URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
 
             HttpURLConnection conn = (HttpURLConnection)target.openConnection();
@@ -137,6 +138,26 @@ public class IPFSFileSystem extends FileSystem {
         }
 
         @Override
+        public int read(long position, byte[] buffer, int offset, int length) throws IOException {
+            validatePositionedReadArgs(position, buffer, offset, length);
+            if (length == 0) {
+                return 0;
+            }
+            long oldPos = getPos();
+            int nread = -1;
+            try {
+                seek(position);
+                nread = read(buffer, offset, length);
+            } catch (EOFException e) {
+                LOG.debug("Downgrading EOFException raised trying to" +
+                    " read {} bytes at offset {}", length, offset, e);
+            } finally {
+                seek(oldPos);
+            }
+            return nread;
+        }
+
+        @Override
         public void readFully(long position, byte[] buffer, int offset, int length) throws IOException {
             validatePositionedReadArgs(position, buffer, offset, length);
             int nread = 0;
@@ -156,12 +177,12 @@ public class IPFSFileSystem extends FileSystem {
 
         @Override
         public void seek(long pos) throws IOException {
-            throw new UnsupportedOperationException();
+            position = pos;
         }
 
         @Override
         public long getPos() throws IOException {
-            throw new UnsupportedOperationException();
+            return position;
         }
 
         @Override
