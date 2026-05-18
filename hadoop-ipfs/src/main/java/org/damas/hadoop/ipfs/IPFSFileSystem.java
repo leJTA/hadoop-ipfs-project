@@ -81,12 +81,11 @@ public class IPFSFileSystem extends FileSystem {
 
     private static class IPFSDataInputStream extends InputStream implements Seekable, PositionedReadable {
         private IPFS ipfs;
-        private URI uri;
         private Path path;
         private int bufferSize;
         private long position;
 
-        protected IPFSDataInputStream(IPFS ipfs, Path path, int bufferSize) {
+        public IPFSDataInputStream(IPFS ipfs, Path path, int bufferSize) {
             if (bufferSize <= 0) {
                 throw new IllegalArgumentException("Buffer size <= 0");
             }
@@ -203,12 +202,24 @@ public class IPFSFileSystem extends FileSystem {
         }
     }
 
+    // private static class IPFSDataOutputStream extends FSDataOutputStream {
+    //     private IPFS ipfs;
+    //     private HttpURLConnection conn;
+    //     private int closeStatus;
+
+    //     public IPFSDataOutputStream(IPFS ipfs, Statistics stats) {
+    //         this.ipfs = ipfs;
+    //         // super(out, stats);
+    //     }
+    // } 
+
     @Override
     public void initialize(URI uri, Configuration conf) throws IOException {
         super.initialize(uri, conf);
         try {
             this.uri = new URI(uri.getScheme() + "://" + uri.getAuthority());
             this.ipfs = new IPFS(uri.getHost(), uri.getPort());
+            this.workingDirectory = new Path("/");
         } catch (URISyntaxException ex) {
             throw new IOException(ex);
         }
@@ -223,8 +234,8 @@ public class IPFSFileSystem extends FileSystem {
     @Override
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize,
             short replication, long blockSize, Progressable progress) throws IOException {
-        // return new IPFSDataOutputStream(ipfs, f);
-        throw new UnsupportedOperationException("Unimplemented method 'create'");
+        // return new IPFSDataOutputStream(ipfs, f, statistics);
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -235,18 +246,23 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean rename(Path src, Path dst) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'rename'");
+        String source = src.toUri().getPath();
+        String dest = dst.toUri().getPath();
+        String arg1 = URLEncoder.encode(source, "UTF-8");
+        String arg2 = URLEncoder.encode(dest, "UTF-8");
+        return !retrieve("files/mv?arg=" + arg1 + "&arg=" + arg2).contains("error");
     }
 
     @Override
     public boolean delete(Path f, boolean recursive) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'delete'");
+        String path = f.toUri().getPath();
+        String arg = URLEncoder.encode(path, "UTF-8") + "&recursive=" + recursive;
+        return !retrieve("files/rm?arg=" + arg).contains("\"error\"");
     }
 
     private String retrieve(String query) throws IOException{
         URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, API_VERSION + query);
+        // System.out.println("[DEBUG] target = " + target);
         HttpURLConnection conn = (HttpURLConnection)target.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
@@ -311,19 +327,27 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean mkdirs(Path f, FsPermission permission) throws IOException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'mkdirs'");
+        String dirPath = f.toUri().getPath();
+        String arg = URLEncoder.encode(dirPath, "UTF-8");
+        return !retrieve("files/mkdir?arg=" + arg).contains("error");
     }
 
     @Override
     public FileStatus getFileStatus(Path f) throws IOException {
         String filePath = f.toUri().getPath();
-        String arg = URLEncoder.encode("/ipfs" + filePath, "UTF-8");
-        // Change the JSON’s `"Type"` field from `"folder"` / `"file"` strings 
-        // to integers `1` / `2` so the MerkleNode can be initialized from it.
-        String resp = retrieve("files/stat?arg=" + arg)
-                .replace("\"file\"", "2")
-                .replace("\"directory\"", "1");
+        String arg = URLEncoder.encode(filePath, "UTF-8");
+        String resp = new String();
+        try {
+            // Change the JSON’s `"Type"` field from `"folder"` / `"file"` strings 
+            // to integers `1` / `2` so the MerkleNode can be initialized from it.
+            resp = retrieve("files/stat?arg=" + arg).replace("\"file\"", "2")
+                   .replace("\"directory\"", "1");
+        } catch(RuntimeException e) {
+            // IPFS api throws a RuntimeException when the file is missing,
+            // we therefore need to catch it and return a null file status.
+            return null;
+        }
+
         MerkleNode node = MerkleNode.fromJSON(JSONParser.parse(resp));
         return new FileStatus(
             (long)node.size.get(),
