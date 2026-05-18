@@ -49,7 +49,7 @@ hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
 Verify that the filesystem is working with the following command :
 
 ```shell
-hadoop fs -ls /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
+hadoop fs -ls /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
 ```
 
 The result should look like this :
