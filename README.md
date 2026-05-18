@@ -4,20 +4,11 @@ IPFS filesystem implementation for Hadoop.
 
 # Installation
 
-Clone this repository and build it:
+Clone this repository and build it, ensuring that the runtime dependencies are automatically copied:
 
 ```shell
 git clone https://gitlab.inria.fr/ajeatsat/hadoop-ipfs-project.git
 cd hadoop-ipfs-project
-mvn package -DskipTests
-```
-
-Clone the [java-ipfs-http-client](https://github.com/ipfs-shipyard/java-ipfs-http-client) repository and build version 1.5.1, while copying runtime dependencies:
-
-```shell
-git clone https://github.com/ipfs-shipyard/java-ipfs-http-client.git
-cd java-ipfs-http-client
-git checkout 1.5.1
 mvn package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
 ```
 
@@ -46,9 +37,30 @@ Copy the following JAR files into:
 
 ```shell
 hadoop-ipfs-project/hadoop-ipfs/target/hadoop-ipfs-0.1-SNAPSHOT.jar
-java-ipfs-http-client/target/java-ipfs-http-client-1.5.1.jar
-java-ipfs-http-client/target/dependency/java-cid-1.4.0.jar
-java-ipfs-http-client/target/dependency/java-multibase-1.3.0.jar
-java-ipfs-http-client/target/dependency/java-multiaddr-1.5.0.jar
-java-ipfs-http-client/target/dependency/java-multihash-1.4.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-ipfs-http-client-1.5.1.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-cid-1.4.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multibase-1.3.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multiaddr-1.5.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
 ```
+
+# Test
+
+Verify that the filesystem is working with the following command :
+
+```shell
+hadoop fs -ls /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
+```
+
+The result should look like this :
+
+```
+-rw-rw-rw-   0       1139 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt
+-rw-rw-rw-   0        235 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/_Metadata.json
+drwxrwxrwx   -          0 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/albums
+-rw-rw-rw-   0       4013 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/apolloarchivr.py
+-rw-rw-rw-   0       9203 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/build_frontend_index.py
+drwxrwxrwx   -          0 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/frontend
+```
+
+*Note: The only information provided by IFPS regarding the files is their `name`, `type` and `size`; `access rights`, `modification date` and `creation date` are therefore set to default values.*
