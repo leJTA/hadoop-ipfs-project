@@ -110,7 +110,6 @@ public class IPFSFileSystem extends FileSystem {
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
             String arg = path + "&offset=" + (position + offset) + "&length=" + length;
             URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
-
             HttpURLConnection conn = (HttpURLConnection)target.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -124,8 +123,10 @@ public class IPFSFileSystem extends FileSystem {
                 out.flush();
                 out.close();
                 InputStream in = new BufferedInputStream(conn.getInputStream(), bufferSize);
+                int bytes = in.read(buffer, 0, length);
+                seek(position + bytes);
 
-                return in.read(buffer, 0, length);
+                return bytes;
             } catch (ConnectException var9) {
                 throw new RuntimeException("Couldn't connect to IPFS daemon at " + 
                                            String.valueOf(target) + "\n Is IPFS running?");
