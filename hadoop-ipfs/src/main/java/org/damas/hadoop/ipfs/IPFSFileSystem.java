@@ -330,7 +330,7 @@ public class IPFSFileSystem extends FileSystem {
     public boolean mkdirs(Path f, FsPermission permission) throws IOException {
         String dirPath = f.toUri().getPath();
         String arg = URLEncoder.encode(dirPath, "UTF-8");
-        return !retrieve("files/mkdir?arg=" + arg).contains("error");
+        return !retrieve("files/mkdir?arg=" + arg + "&parents=true").contains("error");
     }
 
     @Override
