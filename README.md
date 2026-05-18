@@ -55,12 +55,12 @@ hadoop fs -ls /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
 The result should look like this :
 
 ```
--rw-rw-rw-   0       1139 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt
--rw-rw-rw-   0        235 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/_Metadata.json
-drwxrwxrwx   -          0 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/albums
--rw-rw-rw-   0       4013 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/apolloarchivr.py
--rw-rw-rw-   0       9203 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/build_frontend_index.py
-drwxrwxrwx   -          0 1970-01-01 01:00 /QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/frontend
+-rw-rw-rw-   0       1139 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt
+-rw-rw-rw-   0        235 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/_Metadata.json
+drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/albums
+-rw-rw-rw-   0       4013 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/apolloarchivr.py
+-rw-rw-rw-   0       9203 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/build_frontend_index.py
+drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/frontend
 ```
 
 *Note: The only information provided by IFPS regarding the files is their `name`, `type` and `size`; `access rights`, `modification date` and `creation date` are therefore set to default values.*
