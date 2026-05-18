@@ -62,6 +62,7 @@ public class IPFSFileSystem extends FileSystem {
 
     private URI uri;
     private IPFS ipfs;
+    private Path workingDirectory;
 
     @Override
     public String getScheme() {
@@ -85,13 +86,12 @@ public class IPFSFileSystem extends FileSystem {
         private int bufferSize;
         private long position;
 
-        protected IPFSDataInputStream(IPFS ipfs, URI uri, Path path, int bufferSize) {
+        protected IPFSDataInputStream(IPFS ipfs, Path path, int bufferSize) {
             if (bufferSize <= 0) {
                 throw new IllegalArgumentException("Buffer size <= 0");
             }
 
             this.ipfs = ipfs;
-            this.uri = uri;
             this.path = path;
             this.bufferSize = bufferSize;
             this.position = 0;
@@ -107,10 +107,9 @@ public class IPFSFileSystem extends FileSystem {
             // The url pattern for IPFSFilesystem is "ipfs://rootCID/<path>"
             // The "cat" request sent through the ipfs http api is 
             // "http://<host>:<port>/api/v0/cat?arg=<rootCID>/<path>&offset=<offset>&length=<length>"
-            String rootCID = uri.getAuthority();
             String apiVersion = IPFSFileSystem.API_VERSION;
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
-            String arg = rootCID + path + "&offset=" + (position + offset) + "&length=" + length;
+            String arg = path + "&offset=" + (position + offset) + "&length=" + length;
             URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
 
             HttpURLConnection conn = (HttpURLConnection)target.openConnection();
@@ -218,13 +217,14 @@ public class IPFSFileSystem extends FileSystem {
     @Override
     public FSDataInputStream open(Path f, int bufferSize) throws IOException {
         Path path = new Path(f.toUri().getPath()); // get rid of the scheme and the authority
-        return new FSDataInputStream(new IPFSDataInputStream(ipfs, uri, path, bufferSize));
+        return new FSDataInputStream(new IPFSDataInputStream(ipfs, path, bufferSize));
     }
 
     @Override
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize,
             short replication, long blockSize, Progressable progress) throws IOException {
-        throw new UnsupportedOperationException();
+        // return new IPFSDataOutputStream(ipfs, f);
+        throw new UnsupportedOperationException("Unimplemented method 'create'");
     }
 
     @Override
@@ -301,13 +301,12 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public void setWorkingDirectory(Path new_dir) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setWorkingDirectory'");
+        workingDirectory = new Path(new_dir.toUri().getPath());
     }
 
     @Override
     public Path getWorkingDirectory() {
-        return new Path("/");
+        return workingDirectory;
     }
 
     @Override
