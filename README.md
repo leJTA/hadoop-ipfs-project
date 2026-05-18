@@ -19,8 +19,9 @@ git clone https://github.com/ipfs-shipyard/java-ipfs-http-client.git
 cd java-ipfs-http-client
 git checkout 1.5.1
 mvn package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
-Hadoop configuration
 ```
+
+# Hadoop configuration
 
 Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
 ```xml
