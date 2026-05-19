@@ -41,6 +41,7 @@ public class IPFSFileSystem extends FileSystem {
     public static final int    IPFS_DEFAULT_HTTP_PORT = 5001;
     public static final int    CONNECT_TIMEOUT_MILLIS = 10000; 
     public static final int    READ_TIMEOUT_MILLIS = 60000;
+    public static final long   IPFS_DEFAULT_CHUNK_SIZE = 256 * 1024;
 
     public enum FILE_TYPE {
         FILE, DIRECTORY, SYMLINK;
@@ -353,8 +354,8 @@ public class IPFSFileSystem extends FileSystem {
         return new FileStatus(
             (long)node.size.get(),
             node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
-            0,
-            0,
+            1,
+            IPFS_DEFAULT_CHUNK_SIZE,
             0,
             new Path(filePath)
         );
