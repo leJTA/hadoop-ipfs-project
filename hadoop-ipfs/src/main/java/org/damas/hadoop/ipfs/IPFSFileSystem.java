@@ -112,8 +112,20 @@ public class IPFSFileSystem extends FileSystem {
             // "http://<host>:<port>/api/v0/cat?arg=/ipfs/<rootCID>/<path>&offset=<offset>&length=<length>"
             String apiVersion = IPFSFileSystem.API_VERSION;
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
-            String arg = path + "&offset=" + (position + offset) + "&length=" + length;
-            URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
+            String arg;
+            URL target;
+            
+            // IPFS path
+            if (this.path.toString().startsWith("/ipfs/")) {
+                arg = path + "&offset=" + (position + offset) + "&length=" + length;
+                target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "cat?arg=" + arg);
+            }
+            // MFS path
+            else {
+                arg = path + "&offset=" + (position + offset) + "&count=" + length;
+                target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "files/read?arg=" + arg);
+            }
+            
             HttpURLConnection conn = (HttpURLConnection)target.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
@@ -210,14 +222,12 @@ public class IPFSFileSystem extends FileSystem {
     private static class IPFSDataOutputStream extends OutputStream implements Seekable {
         private IPFS ipfs;
         private Path path;
-        private int bufferSize;
         private long position;
 
-        public IPFSDataOutputStream(IPFS ipfs, Path path, int bufferSize) {
+        public IPFSDataOutputStream(IPFS ipfs, Path path) {
             this.ipfs = ipfs;
             this.path = path;
             this.position = 0;
-            this.bufferSize = bufferSize;
         }
 
         @Override
@@ -228,7 +238,7 @@ public class IPFSFileSystem extends FileSystem {
         @Override
         public void write(byte[] buffer, int offset, int length) throws IOException {
             // The "write" request sent through the ipfs http api is 
-            // "http://<host>:<port>/api/v0/file/write?arg=/ipfs/<rootCID>/<path>&offset=<offset>&count=<length>"
+            // "http://<host>:<port>/api/v0/files/write?arg=/ipfs/<rootCID>/<path>&offset=<offset>&count=<length>"
             String apiVersion = IPFSFileSystem.API_VERSION;
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
             String arg = path + "&offset=" + (offset + position) + "&count=" + length + "&parents=true&create=true";
@@ -251,8 +261,7 @@ public class IPFSFileSystem extends FileSystem {
 
         @Override
         public boolean seekToNewSource(long targetPos) throws IOException {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'seekToNewSource'");
+            throw new UnsupportedOperationException();
         }
     } 
 
@@ -278,7 +287,7 @@ public class IPFSFileSystem extends FileSystem {
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize,
             short replication, long blockSize, Progressable progress) throws IOException {
         Path path = new Path(f.toUri().getPath()); // get rid of the scheme and the authority
-        return new FSDataOutputStream(new IPFSDataOutputStream(ipfs, path, bufferSize), statistics);
+        return new FSDataOutputStream(new IPFSDataOutputStream(ipfs, path), statistics);
     }
 
     @Override
@@ -379,7 +388,7 @@ public class IPFSFileSystem extends FileSystem {
                 1,
                 IPFS_DEFAULT_CHUNK_SIZE,
                 0,
-                new Path(dirPath + "/" + node.get("Name"))
+                new Path(dirPath + (dirPath.equals("/") ? "":"/") + node.get("Name"))
             );
         }
         return statusList;
