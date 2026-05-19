@@ -46,7 +46,7 @@ hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
 
 # Test
 
-Verify that the filesystem is working with the following command :
+Launch the ipfs daemon and verify that hadoop ipfs filesystem is working with the following command :
 
 ```shell
 hadoop fs -ls /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
