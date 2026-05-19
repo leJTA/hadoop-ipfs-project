@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +33,8 @@ import org.apache.hadoop.util.Progressable;
 import io.ipfs.api.IPFS;
 import io.ipfs.api.JSONParser;
 import io.ipfs.api.MerkleNode;
+import io.ipfs.api.Multipart;
+import io.ipfs.api.NamedStreamable;
 
 public class IPFSFileSystem extends FileSystem {
 
@@ -106,7 +109,7 @@ public class IPFSFileSystem extends FileSystem {
         public int read(byte[] buffer, int offset, int length) throws IOException {
             // The url pattern for IPFSFilesystem is "ipfs://rootCID/<path>"
             // The "cat" request sent through the ipfs http api is 
-            // "http://<host>:<port>/api/v0/cat?arg=<rootCID>/<path>&offset=<offset>&length=<length>"
+            // "http://<host>:<port>/api/v0/cat?arg=/ipfs/<rootCID>/<path>&offset=<offset>&length=<length>"
             String apiVersion = IPFSFileSystem.API_VERSION;
             String path = URLEncoder.encode(this.path.toString(), "UTF-8");
             String arg = path + "&offset=" + (position + offset) + "&length=" + length;
@@ -204,16 +207,54 @@ public class IPFSFileSystem extends FileSystem {
         }
     }
 
-    // private static class IPFSDataOutputStream extends FSDataOutputStream {
-    //     private IPFS ipfs;
-    //     private HttpURLConnection conn;
-    //     private int closeStatus;
+    private static class IPFSDataOutputStream extends OutputStream implements Seekable {
+        private IPFS ipfs;
+        private Path path;
+        private int bufferSize;
+        private long position;
 
-    //     public IPFSDataOutputStream(IPFS ipfs, Statistics stats) {
-    //         this.ipfs = ipfs;
-    //         // super(out, stats);
-    //     }
-    // } 
+        public IPFSDataOutputStream(IPFS ipfs, Path path, int bufferSize) {
+            this.ipfs = ipfs;
+            this.path = path;
+            this.position = 0;
+            this.bufferSize = bufferSize;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            throw new UnsupportedOperationException("Unimplemented method 'write'");
+        }
+
+        @Override
+        public void write(byte[] buffer, int offset, int length) throws IOException {
+            // The "write" request sent through the ipfs http api is 
+            // "http://<host>:<port>/api/v0/file/write?arg=/ipfs/<rootCID>/<path>&offset=<offset>&count=<length>"
+            String apiVersion = IPFSFileSystem.API_VERSION;
+            String path = URLEncoder.encode(this.path.toString(), "UTF-8");
+            String arg = path + "&offset=" + (offset + position) + "&count=" + length + "&parents=true&create=true";
+            URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, apiVersion + "files/write?arg=" + arg);
+            Multipart m = new Multipart(target.toString(), "UTF-8");
+            m.addFilePart("file", Paths.get(""), new NamedStreamable.ByteArrayWrapper(buffer));
+            m.finish();
+            seek(position + Math.min(buffer.length, length));
+        }
+
+        @Override
+        public void seek(long pos) throws IOException {
+            position = pos;
+        }
+
+        @Override
+        public long getPos() throws IOException {
+            return position;
+        }
+
+        @Override
+        public boolean seekToNewSource(long targetPos) throws IOException {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'seekToNewSource'");
+        }
+    } 
 
     @Override
     public void initialize(URI uri, Configuration conf) throws IOException {
@@ -236,8 +277,8 @@ public class IPFSFileSystem extends FileSystem {
     @Override
     public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize,
             short replication, long blockSize, Progressable progress) throws IOException {
-        // return new IPFSDataOutputStream(ipfs, f, statistics);
-        throw new UnsupportedOperationException();
+        Path path = new Path(f.toUri().getPath()); // get rid of the scheme and the authority
+        return new FSDataOutputStream(new IPFSDataOutputStream(ipfs, path, bufferSize), statistics);
     }
 
     @Override
@@ -248,7 +289,7 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean rename(Path src, Path dst) throws IOException {
-        String source = src.toUri().getPath();
+        String source = src.toUri().getPath(); // get rid of the scheme and the authority
         String dest = dst.toUri().getPath();
         String arg1 = URLEncoder.encode(source, "UTF-8");
         String arg2 = URLEncoder.encode(dest, "UTF-8");
@@ -257,14 +298,13 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean delete(Path f, boolean recursive) throws IOException {
-        String path = f.toUri().getPath();
+        String path = f.toUri().getPath(); // get rid of the scheme and the authority
         String arg = URLEncoder.encode(path, "UTF-8") + "&recursive=" + recursive;
         return !retrieve("files/rm?arg=" + arg).contains("\"error\"");
     }
 
     private String retrieve(String query) throws IOException{
         URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, API_VERSION + query);
-        // System.out.println("[DEBUG] target = " + target);
         HttpURLConnection conn = (HttpURLConnection)target.openConnection();
         conn.setRequestMethod("POST");
         conn.setRequestProperty("Content-Type", "application/json");
@@ -294,8 +334,14 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {
-        String filePath = f.toUri().getPath(); // get rid of the scheme and the authority
-        String arg = URLEncoder.encode(filePath, "UTF-8");
+        String dirPath = f.toUri().getPath(); // get rid of the scheme and the authority
+        
+        // If the path does not start with "/ipfs/", then it is an MFS path
+        if (!dirPath.startsWith("/ipfs/")) {
+            return listStatusMFS(f);
+        }
+
+        String arg = URLEncoder.encode(dirPath, "UTF-8");
         Map reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
         List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
         .flatMap(x -> ((List<Object>) ((Map) x).get("Links")).stream().map(MerkleNode::fromJSON))
@@ -307,13 +353,31 @@ public class IPFSFileSystem extends FileSystem {
             statusList[i] = new FileStatus(
                 (long)node.size.get(),
                 node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
+                1,
+                IPFS_DEFAULT_CHUNK_SIZE,
                 0,
-                0,
-                0,
-                new Path(filePath + "/" + node.name.get())
+                new Path(f.toUri().getPath() + "/" + node.name.get())
             );
         }
+        return statusList;
+    }
 
+    private FileStatus[] listStatusMFS(Path f) throws FileNotFoundException, IOException {
+        String dirPath = f.toUri().getPath(); // get rid of the scheme and the authority
+        List<Map> nodeList = ipfs.files.ls(dirPath, true, true);
+        FileStatus[] statusList = new FileStatus[nodeList.size()];
+        int i = 0;
+
+        for (Map node : nodeList) {
+            statusList[i++] = new FileStatus(
+                (int)node.get("Size"),
+                (int)node.get("Type") == 1, 
+                1,
+                IPFS_DEFAULT_CHUNK_SIZE,
+                0,
+                new Path(dirPath + "/" + node.get("Name"))
+            );
+        }
         return statusList;
     }
 
