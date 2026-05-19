@@ -333,14 +333,18 @@ public class IPFSFileSystem extends FileSystem {
     }
 
     @Override
-    public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {
-        String dirPath = f.toUri().getPath(); // get rid of the scheme and the authority
-        
-        // If the path does not start with "/ipfs/", then it is an MFS path
-        if (!dirPath.startsWith("/ipfs/")) {
-            return listStatusMFS(f);
+    public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {        
+        // If the path starts with "/ipfs/", then it is an IPFS path otherwise it is an MFS one
+        if (f.toUri().getPath().startsWith("/ipfs/")) {
+            return listStatusIPFS(f);
         }
+        else {
+            return listStatusMFS(f);
+        }        
+    }
 
+    private FileStatus[] listStatusIPFS(Path f) throws FileNotFoundException, IOException {
+        String dirPath = f.toUri().getPath();
         String arg = URLEncoder.encode(dirPath, "UTF-8");
         Map reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
         List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
