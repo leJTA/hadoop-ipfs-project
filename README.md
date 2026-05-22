@@ -22,7 +22,7 @@ Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
     <description>IPFS filesystem</description>
 </property>
 
-<!-- Mandatory if the resource manager is YARN -->
+<!-- If the resource manager is YARN, an AbstractFileSystem is required -->
 <property>
     <name>fs.AbstractFileSystem.ipfs.impl</name>
     <value>org.damas.hadoop.ipfs.IPFSAbstractFileSystem</value>
