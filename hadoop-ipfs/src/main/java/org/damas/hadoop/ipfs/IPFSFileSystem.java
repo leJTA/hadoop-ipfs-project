@@ -151,7 +151,15 @@ public class IPFSFileSystem extends FileSystem {
     private FileStatus[] listStatusIPFS(Path f) throws FileNotFoundException, IOException {
         String dirPath = f.toUri().getPath();
         String arg = URLEncoder.encode(dirPath, "UTF-8");
-        Map reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
+        Map reply;
+
+        try{
+            reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
+        }
+        catch (RuntimeException e) {
+            throw new FileNotFoundException("File does not exist: " + dirPath);
+        }
+
         List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
         .flatMap(x -> ((List<Object>) ((Map) x).get("Links")).stream().map(MerkleNode::fromJSON))
         .collect(Collectors.toList());
@@ -177,10 +185,17 @@ public class IPFSFileSystem extends FileSystem {
 
     private FileStatus[] listStatusMFS(Path f) throws FileNotFoundException, IOException {
         String dirPath = f.toUri().getPath(); // get rid of the scheme and the authority
-        List<Map> nodeList = ipfs.files.ls(dirPath, true, true);
+        List<Map> nodeList;
+
+        try{
+            nodeList = ipfs.files.ls(dirPath, true, true);
+        }
+        catch (RuntimeException e) {
+            throw new FileNotFoundException("File does not exist: " + dirPath);
+        }
+
         FileStatus[] statusList = new FileStatus[nodeList.size()];
         int i = 0;
-
         for (Map node : nodeList) {
             statusList[i++] = new FileStatus(
                 (int)node.get("Size"),
