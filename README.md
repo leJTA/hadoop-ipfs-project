@@ -49,7 +49,7 @@ hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multiaddr-1.5.0.jar
 hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
 ```
 
-# Test
+# Verification
 
 Launch the ipfs daemon and verify that hadoop ipfs filesystem is working with the following command :
 
@@ -69,3 +69,17 @@ drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oAN
 ```
 
 *Note: The only information provided by IFPS regarding the files is their `name`, `type` and `size`; `access rights`, `modification date` and `creation date` are therefore set to default values.*
+
+# Test
+
+Test the hadoop wordcount example with the following command (*make sure that the `/output` does not already exist*) :
+
+```shell
+hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples*.jar wordcount /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt /output
+```
+
+Then print the result with :
+
+```shell
+hadood fs -cat /output/*
+```
