@@ -34,7 +34,8 @@ public class IPFSDataOutputStream extends OutputStream implements Seekable {
     @Override
     public void write(byte[] buffer, int offset, int length) throws IOException {
         // The "write" request sent through the ipfs http api is 
-        // "http://<host>:<port>/api/v0/files/write?arg=<path>&offset=<offset>&count=<length>"
+        // "http://<host>:<port>/api/v0/files/write?arg=<path>&offset=<offset>&count=<length>&parents=true&create=true"
+        // IPFS paths are not supported for this operation
         String apiVersion = IPFSFileSystem.API_VERSION;
         String path = URLEncoder.encode(this.path.toString(), "UTF-8");
         String arg = path + "&offset=" + (offset + position) + "&count=" + length + "&parents=true&create=true";

@@ -41,9 +41,10 @@ public class IPFSDataInputStream extends InputStream implements Seekable, Positi
 
     @Override
     public int read(byte[] buffer, int offset, int length) throws IOException {
-        // The url pattern for IPFSFilesystem is "ipfs://rootCID/<path>"
-        // The "cat" request sent through the ipfs http api is 
-        // "http://<host>:<port>/api/v0/cat?arg=<path>&offset=<offset>&length=<length>"
+        // The url pattern for IPFSFilesystem is "ipfs://<host>:<port>/<path>"
+        // The "cat/read" request sent through the ipfs http api is 
+        // "http://<host>:<port>/api/v0/cat?arg=<path>&offset=<offset>&length=<length>" for IPFS paths
+        // "http://<host>:<port>/api/v0/files/read?arg=<path>&offset=<offset>&count=<length>" for MFS paths
         String apiVersion = IPFSFileSystem.API_VERSION;
         String path = URLEncoder.encode(this.path.toString(), "UTF-8");
         String arg;
