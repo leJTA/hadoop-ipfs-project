@@ -10,6 +10,6 @@ import org.apache.hadoop.fs.DelegateToFileSystem;
 public class IPFSAbstractFileSystem extends DelegateToFileSystem {
     public IPFSAbstractFileSystem(URI uri, Configuration conf) 
         throws IOException, URISyntaxException {
-        super(uri, new IPFSFileSystem(), conf, "ipfs", false);
+        super(uri, new IPFSFileSystem(), conf, "ipfs", true);
     }
 }
