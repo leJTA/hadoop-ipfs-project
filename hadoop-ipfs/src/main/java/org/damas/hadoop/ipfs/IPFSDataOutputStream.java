@@ -20,10 +20,13 @@ public class IPFSDataOutputStream extends OutputStream implements Seekable {
     protected byte[] buf;
     protected int count;
 
-    public IPFSDataOutputStream(IPFS ipfs, Path path) {
+    public IPFSDataOutputStream(IPFS ipfs, Path path) throws  IOException {
         this.ipfs = ipfs;
         this.path = path;
         this.position = 0;
+
+        // Write dummy data to the file to make sure it is created if it doesn't exist
+        write(new byte[0]);
     }
 
     @Override 
