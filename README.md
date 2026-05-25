@@ -2,7 +2,7 @@
 
 IPFS filesystem implementation for Hadoop.
 
-# Installation
+# Build
 
 Clone this repository and build it, ensuring that the runtime dependencies are automatically copied:
 
@@ -16,13 +16,28 @@ It is also possible to build with maven docker image :
 
 ```shell
 docker volume create --name maven-repo
-docker run -it \
+docker run -it --rm \
     -v maven-repo:/root/.m2 \
     -v $PWD:/usr/src/hadoop-ipfs-project \
     -w /usr/src/hadoop-ipfs-project \
     maven \
     mvn package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
 ```
+
+# Installation
+
+Copy the following JAR files into `$HADOOP_HOME/share/hadoop/common/lib`:
+
+```shell
+hadoop-ipfs-project/hadoop-ipfs/target/hadoop-ipfs-0.1-SNAPSHOT.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-ipfs-http-client-1.5.1.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-cid-1.4.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multibase-1.3.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multiaddr-1.5.0.jar
+hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
+```
+
+*Note: dependency versions may change depending on the IPFS client version.*
 
 # Hadoop configuration
 
@@ -45,22 +60,6 @@ Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
     <name>fs.defaultFS</name>
     <value>ipfs://localhost:5001</value>
 </property>
-```
-# Dependencies
-
-Copy the following JAR files into:
-
-`$HADOOP_HOME/share/hadoop/common/lib`
-
-*Note: dependency versions may change depending on the IPFS client version.*
-
-```shell
-hadoop-ipfs-project/hadoop-ipfs/target/hadoop-ipfs-0.1-SNAPSHOT.jar
-hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-ipfs-http-client-1.5.1.jar
-hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-cid-1.4.0.jar
-hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multibase-1.3.0.jar
-hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multiaddr-1.5.0.jar
-hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multihash-1.4.0.jar
 ```
 
 # Verification
