@@ -12,6 +12,18 @@ cd hadoop-ipfs-project
 mvn package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
 ```
 
+It is also possible to build with maven docker image :
+
+```shell
+docker volume create --name maven-repo
+docker run -it \
+    -v maven-repo:/root/.m2 \
+    -v $PWD:/usr/src/hadoop-ipfs-project \
+    -w /usr/src/hadoop-ipfs-project \
+    maven \
+    mvn package dependency:copy-dependencies -DincludeScope=runtime -DskipTests
+```
+
 # Hadoop configuration
 
 Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
