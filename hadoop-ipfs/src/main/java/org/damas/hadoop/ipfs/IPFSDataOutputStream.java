@@ -59,10 +59,12 @@ public class IPFSDataOutputStream extends OutputStream implements Seekable {
         return position;
     }
 
+    @Override
     public void flush() throws IOException {
         seek(0);
     }
 
+    @Override
     public void close() throws IOException {
         seek(0);
     }
