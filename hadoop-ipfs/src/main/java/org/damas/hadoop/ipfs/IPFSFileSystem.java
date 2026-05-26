@@ -37,7 +37,7 @@ public class IPFSFileSystem extends FileSystem {
     public static final int    IPFS_DEFAULT_PORT = 5001;
     public static final int    CONNECT_TIMEOUT_MILLIS = 10000; 
     public static final int    READ_TIMEOUT_MILLIS = 60000;
-    public static final long   IPFS_DEFAULT_CHUNK_SIZE = 256 * 1024;
+    public static final long   DEFAULT_BLOCK_SIZE = 32 * 1024 * 1024;
 
     private URI uri;
     private IPFS ipfs;
@@ -171,7 +171,7 @@ public class IPFSFileSystem extends FileSystem {
                 (long)node.size.get(),
                 node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
                 1,
-                IPFS_DEFAULT_CHUNK_SIZE,
+                DEFAULT_BLOCK_SIZE,
                 0,
                 0,
                 null,
@@ -201,7 +201,7 @@ public class IPFSFileSystem extends FileSystem {
                 (int)node.get("Size"),
                 (int)node.get("Type") == 1, 
                 1,
-                IPFS_DEFAULT_CHUNK_SIZE,
+                DEFAULT_BLOCK_SIZE,
                 0,
                 0,
                 null,
@@ -251,7 +251,7 @@ public class IPFSFileSystem extends FileSystem {
             (long)node.size.get(),
             node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
             1,
-            IPFS_DEFAULT_CHUNK_SIZE,
+            DEFAULT_BLOCK_SIZE,
             0,
             0,
             null,
