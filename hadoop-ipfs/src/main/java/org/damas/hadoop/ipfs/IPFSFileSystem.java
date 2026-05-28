@@ -106,6 +106,10 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean delete(Path f, boolean recursive) throws IOException {
+        if (f.toUri().getPath().startsWith("/ipfs/")) {
+            throw new UnsupportedOperationException("Delete operation is only implemented for MFS paths");
+        }
+
         String path = f.toUri().getPath(); // get rid of the scheme and the authority
         String arg = URLEncoder.encode(path, "UTF-8") + "&recursive=" + recursive;
         return !retrieve("files/rm?arg=" + arg).contains("\"error\"");
