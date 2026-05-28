@@ -43,6 +43,9 @@ public class IPFSFileSystem extends FileSystem {
     private IPFS ipfs;
     private Path workingDirectory;
 
+    public IPFSFileSystem() {
+    }
+
     @Override
     public String getScheme() {
         return SCHEME;
@@ -189,6 +192,9 @@ public class IPFSFileSystem extends FileSystem {
 
         try{
             nodeList = ipfs.files.ls(dirPath, true, true);
+            if (nodeList == null) {
+                return new FileStatus[0];
+            }
         }
         catch (RuntimeException e) {
             throw new FileNotFoundException("File does not exist: " + dirPath);
