@@ -55,11 +55,6 @@ Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
     <value>org.damas.hadoop.ipfs.IPFSAbstractFileSystem</value>
     <description>IPFS filesystem</description>
 </property>
-
-<property>
-    <name>fs.defaultFS</name>
-    <value>ipfs://localhost:5001</value>
-</property>
 ```
 
 # Spark Configuration
@@ -69,7 +64,6 @@ Edit `$SPARK_HOME/conf/spark-defaults.conf` and add the following lines :
 ```
 spark.hadoop.fs.ipfs.impl                    org.damas.hadoop.ipfs.IPFSFileSystem
 spark.hadoop.fs.AbstractFileSystem.ipfs.impl org.damas.hadoop.ipfs.IPFSAbstractFileSystem
-spark.hadoop.fs.defaultFS                    ipfs://localhost:5001
 ```
 
 # Verification
@@ -77,18 +71,18 @@ spark.hadoop.fs.defaultFS                    ipfs://localhost:5001
 Launch the ipfs daemon and verify that hadoop ipfs filesystem is working with the following command :
 
 ```shell
-hadoop fs -ls /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
+hadoop fs -ls ipfs://127.0.0.1:5001/ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D
 ```
 
 The result should look like this :
 
 ```
--rw-rw-rw-   0       1139 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt
--rw-rw-rw-   0        235 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/_Metadata.json
-drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/albums
--rw-rw-rw-   0       4013 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/apolloarchivr.py
--rw-rw-rw-   0       9203 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/build_frontend_index.py
-drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/frontend
+-rw-rw-rw-   0       1139 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/README.txt
+-rw-rw-rw-   0        235 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/_Metadata.json
+drwxrwxrwx   -          0 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/albums
+-rw-rw-rw-   0       4013 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/apolloarchivr.py
+-rw-rw-rw-   0       9203 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/build_frontend_index.py
+drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmS...9b2D/frontend
 ```
 
 *Note: The only information provided by IFPS regarding the files is their `name`, `type` and `size`; `access rights`, `modification date` and `creation date` are therefore set to default values.*
@@ -98,7 +92,7 @@ drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oAN
 Test the hadoop wordcount example with the following command (*make sure that the `/output` does not already exist*) :
 
 ```shell
-hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples*.jar wordcount /ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt /output
+hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples*.jar wordcount http://127.0.0.1:5001/ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt /output
 ```
 
 Then print the result with :
