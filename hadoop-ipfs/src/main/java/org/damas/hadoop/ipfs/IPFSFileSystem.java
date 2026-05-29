@@ -184,7 +184,7 @@ public class IPFSFileSystem extends FileSystem {
                 null,
                 System.getProperty("user.name"),
                 null,
-                new Path(f.toUri().getPath() + "/" + node.name.get())
+                new Path(f.toString() + "/" + node.name.get())
             );
         }
         return statusList;
@@ -217,7 +217,7 @@ public class IPFSFileSystem extends FileSystem {
                 null,
                 System.getProperty("user.name"),
                 null,
-                new Path(dirPath + (dirPath.equals("/") ? "":"/") + node.get("Name"))
+                new Path(f.toString() + (dirPath.endsWith("/") ? "":"/") + node.get("Name"))
             );
         }
         return statusList;
@@ -267,7 +267,7 @@ public class IPFSFileSystem extends FileSystem {
             null,
             System.getProperty("user.name"),
             null,
-            new Path(filePath)
+            f
         );
     }
 }
