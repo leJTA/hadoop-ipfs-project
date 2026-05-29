@@ -62,6 +62,16 @@ Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
 </property>
 ```
 
+# Spark Configuration
+
+Edit `$SPARK_HOME/conf/spark-defaults.conf` and add the following lines :
+
+```
+spark.hadoop.fs.ipfs.impl                    org.damas.hadoop.ipfs.IPFSFileSystem
+spark.hadoop.fs.AbstractFileSystem.ipfs.impl org.damas.hadoop.ipfs.IPFSAbstractFileSystem
+spark.hadoop.fs.defaultFS                    ipfs://localhost:5001
+```
+
 # Verification
 
 Launch the ipfs daemon and verify that hadoop ipfs filesystem is working with the following command :
