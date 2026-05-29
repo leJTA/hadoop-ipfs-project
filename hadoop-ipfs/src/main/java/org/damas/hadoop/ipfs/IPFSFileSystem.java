@@ -159,6 +159,7 @@ public class IPFSFileSystem extends FileSystem {
         String dirPath = f.toUri().getPath();
         String arg = URLEncoder.encode(dirPath, "UTF-8");
         Map reply;
+        boolean isDir = true;
 
         try{
             reply = (Map)JSONParser.parse(retrieve("ls?arg=" + arg));
@@ -170,8 +171,14 @@ public class IPFSFileSystem extends FileSystem {
         List<MerkleNode> nodeList = ((List<Object>) reply.get("Objects")).stream()
         .flatMap(x -> ((List<Object>) ((Map) x).get("Links")).stream().map(MerkleNode::fromJSON))
         .collect(Collectors.toList());
-        FileStatus[] statusList = new FileStatus[nodeList.size()];
 
+        // If there is only one entry, we need to check whether it is the only item in the 
+        // folder or the folder itself
+        if (nodeList.size() == 1) {
+            isDir = getFileStatus(f).isDirectory();
+        }
+
+        FileStatus[] statusList = new FileStatus[nodeList.size()];
         for (int i = 0; i < nodeList.size(); ++i) {
             MerkleNode node = nodeList.get(i);
             statusList[i] = new FileStatus(
@@ -184,7 +191,7 @@ public class IPFSFileSystem extends FileSystem {
                 null,
                 System.getProperty("user.name"),
                 null,
-                new Path(f.toString() + "/" + node.name.get())
+                isDir ? new Path(f.toString() + "/" + node.name.get()) : f
             );
         }
         return statusList;
@@ -193,11 +200,18 @@ public class IPFSFileSystem extends FileSystem {
     private FileStatus[] listStatusMFS(Path f) throws FileNotFoundException, IOException {
         String dirPath = f.toUri().getPath(); // get rid of the scheme and the authority
         List<Map> nodeList;
+        boolean isDir = true;
 
         try{
             nodeList = ipfs.files.ls(dirPath, true, true);
             if (nodeList == null) {
                 return new FileStatus[0];
+            }
+
+            // As before, we check whether it is the only item in the 
+            // folder or the folder itself
+            if (nodeList.size() == 1) {
+                isDir = getFileStatus(f).isDirectory();
             }
         }
         catch (RuntimeException e) {
@@ -217,7 +231,7 @@ public class IPFSFileSystem extends FileSystem {
                 null,
                 System.getProperty("user.name"),
                 null,
-                new Path(f.toString() + (dirPath.endsWith("/") ? "":"/") + node.get("Name"))
+                isDir ? new Path(f.toString() + "/" + node.get("Name")) : f
             );
         }
         return statusList;
