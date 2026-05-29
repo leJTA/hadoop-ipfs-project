@@ -82,7 +82,7 @@ The result should look like this :
 drwxrwxrwx   -          0 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/albums
 -rw-rw-rw-   0       4013 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/apolloarchivr.py
 -rw-rw-rw-   0       9203 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/build_frontend_index.py
-drwxrwxrwx   -          0 1970-01-01 01:00 /ipfs/QmS...9b2D/frontend
+drwxrwxrwx   -          0 1970-01-01 01:00 ipfs://127.0.0.1:5001/ipfs/QmS...9b2D/frontend
 ```
 
 *Note: The only information provided by IFPS regarding the files is their `name`, `type` and `size`; `access rights`, `modification date` and `creation date` are therefore set to default values.*
