@@ -222,8 +222,8 @@ public class IPFSFileSystem extends FileSystem {
         int i = 0;
         for (Map node : nodeList) {
             statusList[i++] = new FileStatus(
-                (int)node.get("Size"),
-                (int)node.get("Type") == 1, 
+                ((Number) node.get("Size")).longValue(),
+                (int)node.get("Type") == 1,
                 1,
                 DEFAULT_BLOCK_SIZE,
                 0,
@@ -260,20 +260,17 @@ public class IPFSFileSystem extends FileSystem {
         String arg = URLEncoder.encode(filePath, "UTF-8");
         String resp = new String();
         try {
-            // Change the JSON’s `"Type"` field from `"folder"` / `"file"` strings 
-            // to integers `1` / `2` so the MerkleNode can be initialized from it.
-            resp = retrieve("files/stat?arg=" + arg).replace("\"file\"", "2")
-                   .replace("\"directory\"", "1");
+            resp = retrieve("files/stat?arg=" + arg);
         } catch(RuntimeException e) {
             // IPFS api throws a RuntimeException when the file is missing,
             // we therefore need to catch it and return a null file status.
             throw new FileNotFoundException("File does not exist: " + filePath);
         }
 
-        MerkleNode node = MerkleNode.fromJSON(JSONParser.parse(resp));
+        Map node = (Map)JSONParser.parse(resp);
         return new FileStatus(
-            (long)node.size.get(),
-            node.type.get() == 1,  // dir = 1, file = 2, symlink = 3
+            ((Number) node.get("Size")).longValue(),
+            node.get("Type").equals("directory"),
             1,
             DEFAULT_BLOCK_SIZE,
             0,
