@@ -14,6 +14,7 @@ import io.ipfs.api.Multipart;
 import io.ipfs.api.NamedStreamable;
 
 public class IPFSDataOutputStream extends OutputStream implements Seekable {
+    // private ZkIPFSPointer zkIPFSPtr;
     private IPFS ipfs;
     private Path path;
     private long position;
