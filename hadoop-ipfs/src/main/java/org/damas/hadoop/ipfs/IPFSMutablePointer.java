@@ -19,7 +19,10 @@ public class IPFSMutablePointer {
         
         this.client = CuratorFrameworkFactory.newClient(zookeeperConnectionString, retryPolicy);
         this.client.start();
-        this.client.create().orSetData().forPath(this.cidPath, IPFS_EMPTY_DIR_CID.getBytes());
+
+        if (this.client.checkExists().forPath(this.cidPath) == null) {
+            this.client.create().forPath(this.cidPath, IPFS_EMPTY_DIR_CID.getBytes());
+        }
         
         this.lock = new InterProcessMutex(this.client, this.lockPath);
     }
