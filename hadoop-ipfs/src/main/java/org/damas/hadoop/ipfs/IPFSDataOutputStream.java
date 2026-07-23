@@ -18,6 +18,7 @@ import io.ipfs.api.NamedStreamable;
 
 public class IPFSDataOutputStream extends OutputStream {
     private static final String TEMP_DIRECTORY = System.getProperty("java.io.tmpdir");
+    private static final String OUTPUT_CIDS_FILENAME = "/_cids.out";
 
     private IPFS ipfs;
     private Path path;
@@ -57,19 +58,19 @@ public class IPFSDataOutputStream extends OutputStream {
     @Override
     public void close() throws IOException {
         this.fostream.close();
-        // When finished writing, push the file to IPFS
-        push();
+        // When finished writing, upload the file to IPFS
+        uploadFile();
     }
 
-    private void push() throws IOException {
+    private void uploadFile() throws IOException {
         List<MerkleNode> nodes = ipfs.add(new NamedStreamable.FileWrapper(new File(localPath.toString())));
-        dumpCids(nodes);
+        dumpCid(nodes.get(0));
     }
     
-    private void dumpCids(List<MerkleNode> nodes) throws IOException {
+    private void dumpCid(MerkleNode node) throws IOException {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(conf);
-        Path path = new Path(this.path + "/cids.txt");
+        Path path = new Path(OUTPUT_CIDS_FILENAME);
 
         FSDataOutputStream out = null;
         try {
@@ -78,11 +79,10 @@ public class IPFSDataOutputStream extends OutputStream {
             } else {
                 out = fs.create(path);
             }
-            for (MerkleNode node : nodes) {
-                out.write(node.hash.toBytes());
-                out.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
-                out.hflush();
-            }
+            String line = node.name.orElse("<unnamed>") + " - " + node.hash;
+            out.write(line.getBytes(StandardCharsets.UTF_8));
+            out.write(System.lineSeparator().getBytes(StandardCharsets.UTF_8));
+            out.hflush();
         } finally {
             if (out != null) {
                 out.close();
