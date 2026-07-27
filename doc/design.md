@@ -4,6 +4,8 @@ Hadoop decouples file splits and records from the underlying filesystem. When a 
 
 To integrate IPFS on Hadoop we therefore implemented three classes : `IPFSFileSystem`, `IPFSDataInputStream`, and `IPFSDataOutputStream`. We used [java-ipfs-api](https://github.com/ipfs-shipyard/java-ipfs-http-client) to interact with IPFS.
 
+![](img/hadoop-fs-class-diagram.png)
+
 ## IPFSFileSystem
 
 `IPFSFileSystem` extends `FileSystem` and implements the following basic filesystem operations :
