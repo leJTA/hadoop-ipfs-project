@@ -12,6 +12,40 @@ Each storage node runs an `NGINX` reverse proxy listening on port `6001`. NGINX 
 
 This architecture allows Hadoop applications to access the IPFS HTTP API transparently, without requiring any knowledge of the underlying storage infrastructure.
 
+## NGINX configuration
+
+On every storage node that will receive requests from the compute cluster, create the file `/etc/nginx/sites-enabled/ipfs-gateway` with the following content :
+
+```
+server {
+        listen 6001;
+        server_name $hostname;
+
+        location / {
+                proxy_pass http://127.0.0.1:5001/;
+
+                proxy_connect_timeout 10s;
+                proxy_send_timeout 60s;
+                proxy_read_timeout 60s;
+        }
+}
+```
+
+Reload NGINX to apply the new configuration:
+
+```shell
+sudo nginx -s reload
+```
+
+Verify that NGINX is listening correctly by running:
+
+```
+curl -X POST http://<hostname>:6001/api/v0/version
+```
+Replace `<hostname>` with the hostname of each IPFS gateway.
+
+If the configuration is correct, the command should return the version information of the IPFS gateways.
+
 ## HAProxy configuration
 
 On each computing node, set the content of the file `/etc/haproxy/haproxy.cfg` to the following :
@@ -48,43 +82,17 @@ Once the configuration file has been created, start HAProxy:
 haproxy -f /etc/haproxy/haproxy.cfg -D -p /run/haproxy/haproxy.pid
 ```
 
-You can verify that HAProxy is listening correctly by running the following command from any storage node:
+You can verify that HAProxy is listening correctly by running the following command on each computing node:
 
 ```
-curl -X POST http://<hostname>:6001/api/v0/version
+curl -X POST http://localhost:5001/api/v0/version
 ```
 
-If the configuration is correct, the command should return the version information of the IPFS gateways.
+If the configuration is correct, the command should return the version information of the IPFS gateways. For example :
 
 ```shell
 {"Version":"0.42.0","Commit":"969853d96","Repo":"18","System":"amd64/linux","Golang":"go1.26.4"}
 
-```
-
-
-## NGINX configuration
-
-On every storage node that will receive requests from the compute cluster, create the file `/etc/nginx/sites-enabled/ipfs-gateway` with the following content :
-
-```
-server {
-        listen 6001;
-        server_name $hostname;
-
-        location / {
-                proxy_pass http://127.0.0.1:5001/;
-
-                proxy_connect_timeout 10s;
-                proxy_send_timeout 60s;
-                proxy_read_timeout 60s;
-        }
-}
-```
-
-Reload NGINX to apply the new configuration:
-
-```shell
-sudo nginx -s reload
 ```
 
 ## Verifying the deployment
