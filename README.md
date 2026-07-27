@@ -61,6 +61,8 @@ Edit `$HADOOP_HOME/etc/hadoop/core-site.xml` and add the following properties:
 
 # Spark Configuration
 
+Copy the JAR files mentionned earlier into `$SPARK_HOME/jars`.
+
 Edit `$SPARK_HOME/conf/spark-defaults.conf` and add the following lines :
 
 ```
@@ -126,7 +128,7 @@ Test the hadoop wordcount example with the following command :
 hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples*.jar \
     wordcount \
     ipfs://127.0.0.1:5001/ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt \
-    ipfs://localhost:5001/output
+    ipfs://127.0.0.1:5001/output
 ```
 
 *Note that here we have specified the full URI of the output directory in order to specify the file system to be used.*
