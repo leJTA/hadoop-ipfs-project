@@ -108,7 +108,7 @@ Test the hadoop wordcount example with the following command (*make sure that th
 ```shell
 hadoop jar $HADOOP_HOME/share/hadoop/mapreduce/hadoop-mapreduce-examples*.jar \
     wordcount \
-    http://127.0.0.1:5001/ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt \
+    ipfs://127.0.0.1:5001/ipfs/QmSnuWmxptJZdLJpKRarxBMS2Ju2oANVrgbr2xWbie9b2D/README.txt \
     /output
 ```
 
