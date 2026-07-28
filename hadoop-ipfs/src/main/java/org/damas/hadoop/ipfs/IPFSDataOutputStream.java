@@ -88,7 +88,6 @@ public class IPFSDataOutputStream extends OutputStream {
             if (out != null) {
                 out.close();
             }
-            fs.close();
         }
     }
 }
