@@ -74,7 +74,7 @@ backend ipfs-gateways
     server <gateway1> :6001 maxconn 32
     ...
 ```
-Replace `gateway0`, `gateway1`, and the remaining server entries with the hostname of each storage node running NGINX.
+Replace `<gateway0>`, `<gateway1>`, and the remaining server entries with the hostname of each storage node running NGINX.
 
 Once the configuration file has been created, start HAProxy:
 
