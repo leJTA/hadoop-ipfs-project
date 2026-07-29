@@ -154,8 +154,7 @@ hadoop fs -cat ipfs://127.0.0.1:5001/ipfs/<cid>
 # or ipfs cat <cid>
 ```
 
-To remove delete a file uploaded to `IPFS`, unpin it :
+To delete a file uploaded to `IPFS` :
 ```shell
-ipfs pin rm <cid>
-ipfs repo gc # garbage collect unpinned files
+hadoop fs -rm ipfs://127.0.0.1:5001/ipfs/<cid>
 ```

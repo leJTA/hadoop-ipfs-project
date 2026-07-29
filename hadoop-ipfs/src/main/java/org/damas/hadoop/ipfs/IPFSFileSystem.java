@@ -106,16 +106,30 @@ public class IPFSFileSystem extends FileSystem {
 
     @Override
     public boolean delete(Path f, boolean recursive) throws IOException {
-        if (f.toUri().getPath().startsWith("/ipfs/")) {
-            throw new UnsupportedOperationException("Delete operation is only implemented for MFS paths");
+        String response;
+        try {
+            if (f.toUri().getPath().startsWith("/ipfs/")) {
+                String cid = f.getName();
+                String arg = URLEncoder.encode(cid, "UTF-8") + "&recursive=true";
+                response = retrieve("pin/rm?arg=" + arg);
+            }
+            else {
+                String path = f.toUri().getPath(); // get rid of the scheme and the authority
+                String arg = URLEncoder.encode(path, "UTF-8") + "&recursive=" + recursive;
+                response = retrieve("files/rm?arg=" + arg);
+            }
+        }
+        catch (IOException e) {
+            return false;
+        }
+        catch (RuntimeException e) {
+            throw new FileNotFoundException("Not pinned or pinned indirectly");
         }
 
-        String path = f.toUri().getPath(); // get rid of the scheme and the authority
-        String arg = URLEncoder.encode(path, "UTF-8") + "&recursive=" + recursive;
-        return !retrieve("files/rm?arg=" + arg).contains("\"error\"");
+        return !response.contains("\"error\"");
     }
 
-    private String retrieve(String query) throws IOException{
+    private String retrieve(String query) throws IOException {
         URL target = new URL(ipfs.protocol, ipfs.host, ipfs.port, API_VERSION + query);
         HttpURLConnection conn = (HttpURLConnection)target.openConnection();
         conn.setRequestMethod("POST");
