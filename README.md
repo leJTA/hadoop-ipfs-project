@@ -29,7 +29,7 @@ docker run -it --rm \
 Copy the following JAR files into `$HADOOP_HOME/share/hadoop/common/lib`:
 
 ```shell
-hadoop-ipfs-project/hadoop-ipfs/target/hadoop-ipfs-0.1-SNAPSHOT.jar
+hadoop-ipfs-project/hadoop-ipfs/target/hadoop-ipfs-0.2-SNAPSHOT.jar
 hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-ipfs-http-client-1.5.1.jar
 hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-cid-1.4.0.jar
 hadoop-ipfs-project/hadoop-ipfs/target/dependency/java-multibase-1.3.0.jar
