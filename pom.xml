@@ -14,7 +14,7 @@
 
   <groupId>org.damas.hadoop</groupId>
   <artifactId>hadoop-ipfs-project</artifactId>
-  <version>0.2-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <description>Hadoop IPFS Project</description>
   <name>Hadoop IPFS Project</name>
   <packaging>pom</packaging>

@@ -8,7 +8,7 @@
 
   <groupId>org.damas.hadoop</groupId>
   <artifactId>hadoop-ipfs</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <description>Hadoop IPFS</description>
   <name>Hadoop IPFS</name>
   <packaging>jar</packaging>
